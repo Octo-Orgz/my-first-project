@@ -1,3 +1,4 @@
+[![CI](https://github.com/chloephamfw-ui/my-first-project/actions/workflows/blank.yml/badge.svg)](https://github.com/chloephamfw-ui/my-first-project/actions/workflows/blank.yml)
 # my-first-project-for-December
 # Initialize the factorial result to 1
 factorial = 1
