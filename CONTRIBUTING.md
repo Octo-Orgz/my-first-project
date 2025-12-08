@@ -1,0 +1,1 @@
+This document outlines key information for contributing to the project—setup instructions, development standards, branching rules, commit conventions, issue reporting, and pull request requirements. Following these guidelines helps maintain code quality, streamline reviews, and support a positive contributor experience.
