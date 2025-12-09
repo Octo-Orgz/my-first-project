@@ -11,3 +11,5 @@ for i in range(1, number + 1):
     factorial *= i
 
 print(f"The factorial of {number} is {factorial}")
+ [![SBOM]()] 
+ https://github.com/chloephamfw-ui/my-first-project/blob/6ca8e0e1f2d194293099b1661a56177fdec9bb87/README.md
