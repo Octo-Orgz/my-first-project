@@ -1,0 +1,20 @@
+rules:
+  - name: "Dev High-Severity Sentinel"
+    type: "security_update"
+    scope: "development"
+    target_alerts:
+      severity: "high"
+    action: "apply_indefinitely"
+    description: "Automatically monitor and respond to high-severity development-scoped dependency alerts."
+
+manifest:
+  package.json:
+    dependencies:
+      express: "^4.18.2"
+      mongoose: "^7.6.0"
+      cors: "^2.8.5"
+
+    devDependencies:
+      jest: "^29.7.0"
+      eslint: "^8.56.0"
+      nodemon: "^3.1.0"
