@@ -1,0 +1,55 @@
+name: CodeQL Security Scan
+
+# 1. PR Triggers: Run scan on every pull request targeting main or develop
+on:
+  push:
+    branches: [ "main", "develop" ] # Run analysis when code is merged
+  pull_request:
+    branches: [ "main", "develop" ] # Crucial: Run analysis on every PR change
+    # Optional: Limit PR types to save CI time until PR is ready
+    types: [ opened, synchronize, reopened, ready_for_review ] 
+  
+  # Optional: Weekly schedule scan to catch issues in older code or dependencies
+  schedule:
+    - cron: '30 1 * * 0' # Runs at 1:30 AM UTC every Sunday
+
+# Required permissions for CodeQL to write results (SARIF file) to the Security tab
+permissions:
+  contents: read      # For checking out the code
+  security-events: write # For uploading the CodeQL results
+
+jobs:
+  analyze:
+    # Use a matrix for multiple languages if needed. Example:
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'javascript-typescript', 'python' ] # Add your project languages here
+    
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest # You can use 'macos-latest' for Swift/Obj-C
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Deep fetch is recommended for CodeQL to properly analyze history
+          fetch-depth: 0 
+
+      # 1. Initialize CodeQL
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          # Optional: Use specific query packs or suites (e.g., 'security-extended')
+          # queries: security-and-quality
+
+      # 2. Autobuild (For compiled languages like Java, C#, Go)
+      # For interpreted languages (Python, JavaScript), this step is often skipped or customized.
+      - name: Autobuild (Optional: Replace with custom build steps if needed)
+        uses: github/codeql-action/autobuild@v3
+
+      # 3. Perform CodeQL Analysis
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        # The results are automatically uploaded to GitHub Code Scanning
