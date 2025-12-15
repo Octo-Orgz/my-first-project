@@ -90,3 +90,20 @@ jobs:
       # 
 
     
+
+
+steps:
+      - name: Download Artifact Tag
+        run: echo "TAG=${{ needs.build_and_test.outputs.artifact_tag }}" >> $GITHUB_ENV
+
+      - name: Final Production Deployment (e.g., Blue/Green)
+        run: |
+          echo "Starting phased deployment of ${{ env.TAG }} to Production..."
+          # Use production-specific secrets securely via the environment context
+          echo "Using Prod API Key: ${{ secrets.PROD_API_KEY }}"
+          ./deploy-prod.sh ${{ env.TAG }}
+
+      - name: Post-Deployment Smoke Test
+        run: |
+          # Verify application health immediately after deployment
+          ./smoke-test.sh
