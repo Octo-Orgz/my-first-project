@@ -1,109 +1,22 @@
-name: CI/CD Pipeline Workflow
+            - name: Cache
+  uses: 
+    actions/cache@v5.0.1
+  with:
+    # A list of files, directories, and wildcard patterns to cache and restore
+    path: 
+    # An explicit key for restoring and saving the cache
+    key: 
+    # An ordered multiline string listing the prefix-matched keys, that are used for restoring stale cache if no cache hit occurred for key. Note `cache-hit` returns false in this case.
+    restore-keys: # optional
+    # The chunk size used to split up large files during upload, in bytes
+    upload-chunk-size: # optional
+    # An optional boolean when enabled, allows windows runners to save or restore caches that can be restored or saved respectively on other platforms
+    enableCrossOsArchive: # optional, default is false
+    # Fail the workflow if cache entry is not found
+    fail-on-cache-miss: # optional, default is false
+    # Check if a cache entry exists for the given input(s) (key, restore-keys) without downloading the cache
+    lookup-only: # optional, default is false
+    # Run the post step to save the cache even if another step before fails
+    save-always: # optional, default is false
+          
 
-# Triggers the pipeline on push to the 'develop' branch
-# and when a new release is published (which often targets 'main').
-on:
-  push:
-    branches:
-      - develop
-      - main
-  # Allows manual triggering for emergency deployments
-  workflow_dispatch:
-
-jobs:
-  #########################################
-  # PHASE I & II: Build, Test, & Deploy to DEV
-  #########################################
-  build_and_test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      # 1. CI: Build Artifact & Run Unit Tests
-      - name: Setup Node/Go/Python (Example)
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Build Application & Generate Artifact
-        run: |
-          npm install
-          npm run build
-          # Save the artifact (e.g., Docker image reference or deployment package)
-          echo "IMAGE_TAG=$(date +%s)" >> $GITHUB_ENV
-
-      - name: Run Unit Tests & Static Analysis (CI Gate)
-        run: npm test
-
-      # 2. CD: Deploy to DEV Environment (Automatic)
-      - name: Deploy to DEV (Integration Test Environment)
-        run: |
-          # Use your deployment tool (e.g., kubectl, serverless deploy, Terraform apply)
-          echo "Deploying ${{ env.IMAGE_TAG }} to DEV..."
-
-      # 3. Artifact Promotion
-      - name: Export Artifact Tag for next stages
-        run: echo "ARTIFACT_TAG=${{ env.IMAGE_TAG }}" >> $GITHUB_OUTPUT
-        id: set_tag
-        
-    outputs:
-      artifact_tag: ${{ steps.set_tag.outputs.ARTIFACT_TAG }}
-
-  #########################################
-  # PHASE III: Deploy to Staging (Requires Approval)
-  #########################################
-  deploy_staging:
-    needs: [build_and_test]
-    if: github.ref == 'refs/heads/develop' # Only run Staging on 'develop' branch merges
-    runs-on: ubuntu-latest
-
-    environment:
-      name: Staging
-      # Protects the environment: Manual review by a team member is required
-      # before this job starts.
-      # You must set up a Reviewer in the Repository Settings -> Environments.
-      # 
-
-    steps:
-      - name: Download Artifact Tag
-        run: echo "TAG=${{ needs.build_and_test.outputs.artifact_tag }}" >> $GITHUB_ENV
-
-      - name: Run E2E Tests on Staging
-        # Deploys the artifact and then executes comprehensive tests
-        run: |
-          echo "Deploying artifact ${{ env.TAG }} to Staging Environment..."
-          npm run e2e-tests # Must pass UAT before proceeding
-
-  #########################################
-  # PHASE IV: Deploy to Production (Requires Approval)
-  #########################################
-  deploy_production:
-    needs: [deploy_staging]
-    if: github.ref == 'refs/heads/main' # Only run Production on 'main' branch merges
-    runs-on: ubuntu-latest
-
-    environment:
-      name: Production
-      # Requires a high-level review (e.g., Lead Engineer)
-      # and includes secret variables specific to production.
-      # 
-
-    
-
-
-steps:
-      - name: Download Artifact Tag
-        run: echo "TAG=${{ needs.build_and_test.outputs.artifact_tag }}" >> $GITHUB_ENV
-
-      - name: Final Production Deployment (e.g., Blue/Green)
-        run: |
-          echo "Starting phased deployment of ${{ env.TAG }} to Production..."
-          # Use production-specific secrets securely via the environment context
-          echo "Using Prod API Key: ${{ secrets.PROD_API_KEY }}"
-          ./deploy-prod.sh ${{ env.TAG }}
-
-      - name: Post-Deployment Smoke Test
-        run: |
-          # Verify application health immediately after deployment
-          ./smoke-test.sh
