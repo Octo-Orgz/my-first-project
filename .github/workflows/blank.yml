@@ -19,7 +19,8 @@ jobs:
         java-version: '11'
         distribution: 'temurin'
         cache: gradle
-name: Secure CI Workflow
+name: 
+Secure CI Workflow
 
 on: [push, pull_request]
 
