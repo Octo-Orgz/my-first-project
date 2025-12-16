@@ -1,3 +1,46 @@
+name: Build and Test Matrix (with Artifact Upload)
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [3.9, 3.10]
+        node-version: [16, 18]
+
+    name: Node ${{ matrix.node-version }} / Python ${{ matrix.python-version }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      # --- NEW ARTIFACT UPLOAD STEP ---
+      - name: Upload Logs/Reports (Initial)
+        uses: actions/upload-artifact@v3
+        with:
+          # Define the artifact name using the matrix variables
+          name: logs-node-${{ matrix.node-version }}-python-${{ matrix.python-version }}
+          # Specify the path(s) to the files you want to save
+          # NOTE: Adjust this path to include the files relevant to your project 
+          # (e.g., build logs, configuration files, initial reports)
+          path: |
+            ./logs/initial_setup.log
+            ./config.toml
+          # retention-days: 5 # Uncomment to limit how long the artifact is stored
+
+      # --- Rest of the Matrix Job Steps Follow ---
+
+      # Node Setup and Dependencies
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      # Caching for npm packages...
+      # ... (Other steps omitted for brevity)
 # This is a basic workflow to help you get started with Actions
 
 name: CI
