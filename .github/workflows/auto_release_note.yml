@@ -1,0 +1,99 @@
+name: Auto-generate release notes
+
+# Trigger the workflow
+# Runs manually or when a version tag is pushed
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write   # Required to create releases
+  metadata: read
+
+jobs:
+  generate-release-notes:
+    name: Generate automated release notes
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Required to access full commit and tag history
+
+      # Get the most recent Git tag
+      - name: Get latest tag
+        id: latest_tag
+        run: |
+          git fetch --tags
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          echo "last_tag=$LAST_TAG" >> $GITHUB_OUTPUT
+
+      # Extract commits and format release notes
+      - name: Generate release notes content
+        id: release_notes
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { execSync } = require('child_process');
+
+            const lastTag = "${{ steps.latest_tag.outputs.last_tag }}";
+            const range = lastTag ? `${lastTag}..HEAD` : '--root';
+
+            // Retrieve commit messages, excluding merge commits
+            const commits = execSync(
+              `git log ${range} --pretty=format:%s --no-merges`
+            ).toString().split('\n');
+
+            const added = [];
+            const modified = [];
+            const removed = [];
+
+            for (const message of commits) {
+              if (message.startsWith('feat:')) {
+                added.push(message.replace('feat:', '').trim());
+              } else if (
+                message.startsWith('fix:') ||
+                message.startsWith('update:')
+              ) {
+                modified.push(message.replace(/^(fix:|update:)/, '').trim());
+              } else if (
+                message.startsWith('remove:') ||
+                message.startsWith('delete:')
+              ) {
+                removed.push(message.replace(/^(remove:|delete:)/, '').trim());
+              }
+            }
+
+            let notes = `## Migration Summary\n\n`;
+
+            notes += `### Added\n`;
+            notes += added.length ? added.map(i => `- ${i}`).join('\n') : '- None';
+
+            notes += `\n\n### Modified\n`;
+            notes += modified.length ? modified.map(i => `- ${i}`).join('\n') : '- None';
+
+            notes += `\n\n### Removed\n`;
+            notes += removed.length ? removed.map(i => `- ${i}`).join('\n') : '- None';
+
+            core.setOutput('notes', notes);
+
+      # Create a draft release with the generated notes
+      - name: Create draft release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tagName = context.ref.replace('refs/tags/', '');
+
+            await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: tagName,
+              name: `Release ${tagName}`,
+              body: `${{ steps.release_notes.outputs.notes }}`,
+              draft: true,
+              prerelease: false
+            });
