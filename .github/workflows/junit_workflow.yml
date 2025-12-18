@@ -27,3 +27,12 @@ jobs:
 
     - name: Run JUnit tests
       run: mvn test
+    - name: Run JUnit tests
+      run: mvn test
+
+    - name: Upload JUnit Test Reports
+      if: always() # Ensures reports are uploaded even if tests fail
+      uses: actions/upload-artifact@v3
+      with:
+        name: junit_reports_java_${{ matrix.java-version }}
+        path: target/surefire-reports  
