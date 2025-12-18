@@ -1,0 +1,98 @@
+name: Android CI
+
+on:
+  push:
+    branches: [ "new12" ]
+  pull_request:
+    branches: [ "new12" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: set up JDK 11
+      uses: actions/setup-java@v4
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+        cache: gradle
+name: 
+Secure CI Workflow
+
+on: [push, pull_request]
+
+jobs:
+  verify_secrets:
+    runs-on: ubuntu-latest
+    
+    # Define which secrets this job needs. This is optional but good practice.
+    env:
+      MY_API_KEY: ${{ secrets.API_KEY }}
+      MY_DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # --- Verification Step (Secure Method) ---
+      # This step checks if the secret variables are set (i.e., not empty) 
+      # without ever printing their values to the workflow log.
+      - name: Verify Secrets are Accessible
+        shell: bash
+        run: |
+          echo "--- Starting Secret Verification ---"
+          
+          # Check API_KEY
+          if [ -z "$MY_API_KEY" ]; then
+            echo "::error::Secret API_KEY is NOT set or accessible!"
+            exit 1
+          else
+            # Only print a generic success message, not the value.
+            echo "API_KEY successfully accessed (Length: ${#MY_API_KEY} characters)"
+          fi
+          
+          # Check DB_PASSWORD
+          if [ -z "$MY_DB_PASSWORD" ]; then
+            echo "::error::Secret DB_PASSWORD is NOT set or accessible!"
+            exit 1
+          else
+            echo "DB_PASSWORD successfully accessed (Length: ${#MY_DB_PASSWORD} characters)"
+          fi
+          
+          echo "--- Secret Verification Complete ---"
+
+  # --- Example Job Using Secrets Directly ---
+  deploy:
+    runs-on: ubuntu-latest
+    needs: verify_secrets # Ensure verification runs first
+    environment: production # Use environment protection rules if necessary
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        
+      # 1. Referencing Secrets in `with:` section (e.g., for third-party actions)
+      - name: Log in to Docker Registry
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }} # Directly using the secret
+          
+      # 2. Referencing Secrets in `run:` command via environment variables
+      - name: Deploy Application
+        env:
+          # Define environment variable here and assign the secret value
+          SERVICE_TOKEN: ${{ secrets.SERVICE_TOKEN }} 
+        run: |
+          # Use the environment variable in the script. 
+          # GitHub automatically redacts known secret values if they appear in logs.
+          ./deploy-script.sh --token $SERVICE_TOKEN
+          echo "Deployment initiated."
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+    - name: Build with Gradle
+      run: ./gradlew build
+
