@@ -36,3 +36,51 @@ jobs:
       with:
         name: junit_reports_java_${{ matrix.java-version }}
         path: target/surefire-reports  
+# 1. Run your tests (example using Maven, change to npm/pytest as needed)
+      - name: Run Tests
+        run: mvn test
+
+      # 2. Generate a Summary Report in the GitHub UI
+      - name: Test Report
+        uses: dorny/test-reporter@v1
+        if: success() || failure()    # Run even if tests fail
+        with:
+          name: JUnit Tests           # Name of the check run
+          path: '**/target/surefire-reports/*.xml' # Path to JUnit XML results
+          reporter: java-junit        # Change to 'jest-junit' or 'mocha-junit' if needed
+
+      # 3. Save the summary/results as an artifact
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v3
+        if: always()                  # Ensure results are uploaded even on failure
+        with:
+          name: junit-report
+          path: |
+            **/target/surefire-reports/*.xml
+            **/target/site/surefire-report.html 
+          retention-days: 5
+                - name: Bot Notifications
+  # You may pin to the exact commit or the version.
+  # uses: hb0730/bot-notice-action@5bc6d5004cf56f415d38f79544496b31bf6d4dea
+  uses: hb0730/bot-notice-action@v1.0.5
+  with:
+    # The webhook url
+    webhook: 
+    # The secret
+    secret: # optional
+    # The bot type,default: feishu
+    bot: # default is feishu
+    # The msg type,default: text
+    msg_type: # default is text
+    # The content is simplified
+    simplified: # optional, default is true
+    # The content
+    content: # optional, default is Hello World
+    # Actions build status (e.g. success, failure, cancelled)
+    job_status: 
+    # when to notify, default: always, "always", "success", "failure", "cancelled"
+    on_notification: # default is always
+    # Only on failure at all, default: false,template string ${@all} will be replaced
+    on_failure_at_all: # optional, default is true
+                
+        
