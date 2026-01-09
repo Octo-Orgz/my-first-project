@@ -1,1 +1,72 @@
+name: Build and Test Matrix
 
+on: [push, pull_request]
+
+jobs:
+  build:
+    # 1. Define the Matrix
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Define the Python versions
+        python-version: [3.9, 3.10]
+        # Define the Node versions
+        node-version: [16, 18]
+
+    # Display the current combination in the job name
+    name: Node ${{ matrix.node-version }} / Python ${{ matrix.python-version }}
+
+    steps:
+      # --- Node Setup and Dependencies ---
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          
+      # 2. Caching for npm packages
+      - name: Cache Node Modules
+        id: cache-npm
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          # Generates a key based on the 'package-lock.json' file and the Node version
+          key: ${{ runner.os }}-node-${{ matrix.node-version }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-${{ matrix.node-version }}-
+
+      # 3. Install npm dependencies (frontend/backend if applicable)
+      - name: Install Node dependencies
+        if: steps.cache-npm.outputs.cache-hit != 'true'
+        run: npm install
+        
+      # --- Python Setup and Dependencies ---
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          
+      # 4. Caching for pip packages
+      - name: Cache Pip Packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          # Generates a key based on 'requirements.txt' and the Python version
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ matrix.python-version }}-
+            
+      # 5. Install pip dependencies
+      # You might need to change 'requirements.txt' to your actual file path
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+        
+      # --- Execution Steps ---
+      - name: Run Tests (Example)
+        # Your actual command to run tests for both parts of your app
+        run: |
+          npm test
+          python -m unittest discover
